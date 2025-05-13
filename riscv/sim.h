@@ -39,6 +39,11 @@ public:
         std::optional<unsigned long long> instruction_limit);
   ~sim_t();
 
+  void diff_init(int port);
+  void diff_step(uint64_t n);
+  void diff_memcpy(reg_t dest, void* src, size_t n);
+  void diff_get_regs(void* diff_context);
+
   int run();
   void set_debug(bool value);
   void set_histogram(bool value);
