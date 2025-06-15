@@ -44,7 +44,13 @@ static canonical_termios_t tios; // exit() will clean up for us
 #include <utmp.h>
 
 static int master_fd, slave_fd;
+static bool use_pty=false;
+inline bool is_use_pty(){
+  return use_pty;
+}
 int init_pty() {
+  use_pty=true;
+
   char slave_name[256];
   if (openpty(&master_fd, &slave_fd, slave_name, NULL, NULL) == -1) {
     perror("openpty failed");
@@ -79,6 +85,10 @@ void pty_write_byte(char c) {
   if (write(master_fd, &c, 1) != 1) {
     perror("write to pty failed");
   }
+  char  enter = '\r';
+  if (c=='\n' && write(master_fd, &enter, 1) != 1) {
+    perror("write to pty failed");
+  }
 }
 
 void pty_write_str(const char *str) {
@@ -93,7 +103,8 @@ int pty_read_byte(char* buf) {
 //======================
 int canonical_terminal_t::read()
 {
-/*   struct pollfd pfd;
+  if(!is_use_pty()){
+  struct pollfd pfd;
   pfd.fd = 0;
   pfd.events = POLLIN;
   int ret = poll(&pfd, 1, 0);
@@ -102,22 +113,27 @@ int canonical_terminal_t::read()
 
   unsigned char ch;
   ret = ::read(0, &ch, 1);
-  return ret <= 0 ? -1 : ch; */
+  return ret <= 0 ? -1 : ch;
+}
   // struct pollfd pfd;
   // pfd.fd = 0;
   // pfd.events = POLLIN;
   // int ret = poll(&pfd, 1, 0);
   // if (ret <= 0 || !(pfd.revents & POLLIN))
   //   return -1;
-
+else{
   unsigned char ch;
   int ret = ::read(master_fd, &ch, 1);
   return ret <= 0 ? -1 : ch;
 }
+}
 
 void canonical_terminal_t::write(char ch)
 {
-/*   if (::write(1, &ch, 1) != 1)
-    abort(); */
+if(!is_use_pty()){
+  if (::write(1, &ch, 1) != 1)
+    abort();
+}else{
     pty_write_byte(ch);
+  }
 }
